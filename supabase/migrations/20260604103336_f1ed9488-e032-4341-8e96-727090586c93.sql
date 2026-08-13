@@ -1,0 +1,1 @@
+GRANT SELECT (ip_address) ON public.postcodes TO authenticated;

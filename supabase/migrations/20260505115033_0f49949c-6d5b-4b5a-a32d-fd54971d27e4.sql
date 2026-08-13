@@ -1,0 +1,1 @@
+ALTER TABLE public.riders ADD COLUMN IF NOT EXISTS push_token TEXT;

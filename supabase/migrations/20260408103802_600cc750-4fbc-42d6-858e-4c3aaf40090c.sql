@@ -1,0 +1,1 @@
+CREATE POLICY "Admins can read all business earnings" ON public.business_earnings FOR SELECT TO authenticated USING (true);

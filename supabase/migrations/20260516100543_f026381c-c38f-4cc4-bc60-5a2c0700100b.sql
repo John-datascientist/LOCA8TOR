@@ -1,0 +1,1 @@
+UPDATE public.withdrawals SET status='pending' WHERE id='0a641b94-85f7-4d1e-a950-1efa8250e618';

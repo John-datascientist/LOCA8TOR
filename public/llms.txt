@@ -1,0 +1,28 @@
+# Loca8tor
+
+> Loca8tor turns any address into a precise, shareable postcode and powers delivery workflows for riders and businesses across Nigeria, the UK, US, and Canada.
+
+Loca8tor (by Workerholics Solutions Ltd) generates 1km-grid postcodes for Nigeria and reverse-geocodes addresses for UK/US/CA. It includes live delivery tracking, a rider app with proof-of-delivery, business fleet tools, and a location quiz with rewards.
+
+## Pages
+
+- [Home](/): Overview of Loca8tor postcode generation and delivery features.
+- [Generate Postcode](/generate): Generate a shareable postcode from your current location.
+- [Search Postcode](/search): Look up a postcode and view it on a map.
+- [Live Map](/map): Interactive map of generated postcodes and points of interest.
+- [Track Delivery](/track): Customer-facing live delivery tracking by code.
+- [Pricing](/pricing): Free, Standard, and business plans with FAQs.
+- [API Docs](/api-docs): Developer reference for postcode and geolocation endpoints.
+- [Quiz](/quiz): Location knowledge quiz with airtime/data rewards.
+- [Refer & Earn](/refer): Invite friends and earn referral credit.
+- [Contact](/contact): Send a support query or sales inquiry.
+
+## Account
+
+- [Sign Up](/signup): Create an individual, rider, or business account.
+- [Sign In](/login): Access your dashboard.
+
+## Optional
+
+- [Terms](/terms): Terms of service.
+- [Privacy](/privacy): Privacy policy (NDPR/GDPR).
