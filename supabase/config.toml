@@ -32,7 +32,9 @@ project_id = "iqnegswxgttmhjcjwyzm"
   [functions.stripe-webhook]
     verify_jwt = false
   [functions.stripe-create-subscription-checkout]
-    verify_jwt = true
+    verify_jwt = false
+  [functions.cancel-subscription]
+    verify_jwt = false
   [functions.mcp]
     verify_jwt = false
   [functions.notify-referral-credited]
