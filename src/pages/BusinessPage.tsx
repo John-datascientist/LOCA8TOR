@@ -38,8 +38,16 @@ export default function BusinessPage() {
     }
 
     // Lock business dashboard until subscription is active or trialing.
-    const subStatus = (profile as any).subscription_status;
-    const activeLike = subStatus === 'active' || subStatus === 'trialing' || subStatus === 'trial';
+    // Use the same effective-status RPC as /onboarding/billing and
+    // RequireAuthForNonNG (not the raw riders.subscription_status column,
+    // which doesn't get updated for wallet-started trials/subscriptions and
+    // was causing this page to disagree with /onboarding/billing about
+    // whether the account was paid — bouncing the user back and forth
+    // between the two forever).
+    const { data: effRes } = await (supabase as any).rpc('get_effective_subscription_status', { p_user_id: user.id });
+    const eff = Array.isArray(effRes) ? effRes[0] : effRes;
+    const effectiveStatus = (eff?.effective_status as string) || '';
+    const activeLike = ['active', 'trialing', 'trial'].includes(effectiveStatus);
     if (!activeLike) {
       navigate('/onboarding/billing');
       return;
