@@ -75,6 +75,32 @@ function FitBounds({ points }: { points: [number, number][] }) {
   return null;
 }
 
+// Leaflet measures its container's size once, when the map first mounts, and
+// never notices afterward if that container is resized — e.g. this map's
+// wrapper switching from a fixed h-[45vh] to flex-1 when a trip starts. Left
+// unhandled, the map can render with a stale/zero size and appear blank
+// (tiles positioned for a size that no longer matches the real container).
+// A ResizeObserver on the container calls invalidateSize() any time it
+// actually changes, which forces Leaflet to remeasure and redraw.
+function MapResizeHandler() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    // Catch the very first layout too, in case it wasn't finalized yet on
+    // the frame Leaflet used for its initial size measurement.
+    const initial = setTimeout(() => map.invalidateSize(), 100);
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(container);
+    return () => {
+      clearTimeout(initial);
+      ro.disconnect();
+    };
+  }, [map]);
+
+  return null;
+}
+
 export default function LiveDeliveryMap({
   riderLat, riderLng,
   pickupLat, pickupLng,
@@ -124,6 +150,7 @@ export default function LiveDeliveryMap({
 
       <MapFollower lat={riderLat} lng={riderLng} follow={followRider} />
       <FitBounds points={fitPoints} />
+      <MapResizeHandler />
     </MapContainer>
   );
 }
