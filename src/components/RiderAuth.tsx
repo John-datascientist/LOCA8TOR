@@ -9,7 +9,7 @@ import ShiftTracker from '@/components/rider/ShiftTracker';
 import RouteHistory from '@/components/rider/RouteHistory';
 import RiderNavigationView from '@/components/rider/RiderNavigationView';
 
-const PASSWORD_RESET_REDIRECT_URL = 'https://www.loca8tor.com/reset-password';
+const getPasswordResetRedirectUrl = () => `${window.location.origin}/reset-password`;
 
 export interface RiderProfile {
   id: string;
@@ -774,7 +774,7 @@ function SignInForm({ onSwitch }: { onSwitch: () => void }) {
     if (!resetEmail.trim()) { toast.error('Enter your email'); return; }
     setResetLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
-      redirectTo: PASSWORD_RESET_REDIRECT_URL,
+      redirectTo: getPasswordResetRedirectUrl(),
     });
     if (error) toast.error(error.message);
     else toast.success('Password reset link sent to your email!');
