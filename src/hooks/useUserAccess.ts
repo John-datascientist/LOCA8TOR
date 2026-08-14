@@ -3,10 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 
 const COUNTRY_CACHE_KEY = 'loca8tor:country_code';
 
-const isPreviewHost = () =>
-  typeof window !== 'undefined' &&
-  (window.location.hostname === 'localhost' ||
-    window.location.hostname.endsWith('.vercel.app'));
+const isPreviewHost = () => {
+  if (typeof window === 'undefined') return false;
+  if (window.location.hostname === 'localhost') return true;
+  // Vercel bakes VERCEL_ENV in at build time (see vite.config.ts). A bare
+  // hostname.endsWith('.vercel.app') check would also match production when
+  // no custom domain is set (production's own URL is *.vercel.app too), so
+  // use the actual build environment instead of guessing from the hostname.
+  return typeof __VERCEL_ENV__ !== 'undefined' && __VERCEL_ENV__ === 'preview';
+};
 
 async function detectCountry(): Promise<string> {
   let code = '';
