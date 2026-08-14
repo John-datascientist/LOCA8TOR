@@ -4,6 +4,8 @@ interface RouteResult {
   coordinates: [number, number][];
   distanceKm: number;
   durationMin: number;
+  /** True when both routing services failed and this is a straight-line fallback. */
+  isFallback?: boolean;
 }
 
 export function useRoute(
@@ -31,7 +33,13 @@ export function useRoute(
       let ok = false;
       for (const url of endpoints) {
         try {
-          const res = await fetch(url);
+          // Public routing demo servers can hang instead of failing outright
+          // on some networks — bound each attempt so we reach the straight-line
+          // fallback quickly rather than leaving the caller waiting indefinitely.
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+          const res = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
           if (!res.ok) continue;
           const data = await res.json();
           if (data.routes?.[0]) {
@@ -52,6 +60,7 @@ export function useRoute(
           coordinates: [[from.lat, from.lng], [to.lat, to.lng]],
           distanceKm: 0,
           durationMin: 0,
+          isFallback: true,
         });
       }
       setLoading(false);
