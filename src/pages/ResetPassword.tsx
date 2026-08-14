@@ -4,7 +4,7 @@ import { Loader2, Lock, Eye, EyeOff, Mail, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
 
-const PASSWORD_RESET_REDIRECT_URL = 'https://www.loca8tor.com/reset-password';
+const getPasswordResetRedirectUrl = () => `${window.location.origin}/reset-password`;
 
 const getRecoveryIndicators = () => {
   if (typeof window === 'undefined') {
@@ -123,7 +123,7 @@ export default function ResetPassword() {
 
     setRequestLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
-      redirectTo: PASSWORD_RESET_REDIRECT_URL,
+      redirectTo: getPasswordResetRedirectUrl(),
     });
 
     if (error) {
