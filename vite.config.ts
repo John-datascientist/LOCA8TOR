@@ -24,6 +24,13 @@ function swBuildIdPlugin() {
 
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
+  define: {
+    // Vercel sets VERCEL_ENV ('production' | 'preview' | 'development') at
+    // build time. Baked in here so the client can tell a real preview
+    // deployment apart from production — production's default *.vercel.app
+    // domain would otherwise look identical to a preview URL.
+    __VERCEL_ENV__: JSON.stringify(process.env.VERCEL_ENV ?? ""),
+  },
   server: {
     host: "::",
     port: 8080,
