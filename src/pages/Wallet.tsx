@@ -20,6 +20,11 @@ export default function Wallet() {
   const [txs, setTxs] = useState<Tx[]>([]);
   const [sub, setSub] = useState<Sub | null>(null);
   const [fund, setFund] = useState(false);
+  // Solo riders/drivers pay for their own plan via /rider's SubscribeModal,
+  // not the business-only /billing page (which doesn't even list rider-
+  // category plans) — track this so the "manage subscription" links below
+  // send them to the right place instead of a dead end.
+  const [isSoloRider, setIsSoloRider] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -33,6 +38,7 @@ export default function Wallet() {
     ]);
     // Solo riders/drivers pay for their own plan, so they get wallet access too.
     const isSolo = (rider as any)?.rider_mode === 'individual';
+    setIsSoloRider(isSolo);
     setAccountType(isSolo ? 'business' : ((rider as any)?.account_type || null));
     setBalance(Number((wallet as any)?.balance_ngn ?? 0));
     setTxs((txList as any) || []);
@@ -122,7 +128,7 @@ export default function Wallet() {
               className="flex items-center gap-1.5 bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 rounded-md hover:bg-primary/90">
               <Plus className="w-4 h-4" /> Fund Wallet
             </button>
-            <Link to="/billing" className="text-sm font-semibold px-4 py-2 rounded-md bg-secondary hover:bg-secondary/70">
+            <Link to={isSoloRider ? '/rider' : '/billing'} className="text-sm font-semibold px-4 py-2 rounded-md bg-secondary hover:bg-secondary/70">
               Manage subscription
             </Link>
           </div>
@@ -147,7 +153,9 @@ export default function Wallet() {
               )}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">No active subscription. Visit <Link to="/billing" className="text-primary underline">Billing</Link> to pick a plan.</p>
+            <p className="text-xs text-muted-foreground">
+              No active subscription. Visit <Link to={isSoloRider ? '/rider' : '/billing'} className="text-primary underline">{isSoloRider ? 'your rider dashboard' : 'Billing'}</Link> to pick a plan.
+            </p>
           )}
         </section>
 
