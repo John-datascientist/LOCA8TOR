@@ -26,8 +26,11 @@ self.addEventListener('fetch', (event) => {
   // For HTML navigations, always go to the network and bypass HTTP cache.
   if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
     event.respondWith(fetch(req, { cache: 'no-store' }).catch(() => fetch(req)));
-    return;
   }
-  // Everything else: pass through (no caching).
-  event.respondWith(fetch(req));
+  // Everything else (API calls, images, scripts, etc.): don't intercept at
+  // all — this SW does no caching, so re-fetching through respondWith()
+  // added no benefit and was a pure failure surface. Requests that go
+  // through it can throw "Failed to fetch" (seen for Supabase API calls,
+  // breaking pages that depend on their result), where the same request
+  // succeeds fine when left to the browser's normal network stack.
 });
