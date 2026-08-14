@@ -850,6 +850,12 @@ export default function RiderApp() {
           <div className="mt-6 space-y-6">
             {soloSubActive ? (
               <>
+                <a
+                  href="/wallet"
+                  className="block text-center text-[11px] font-semibold text-primary hover:underline"
+                >
+                  Manage wallet & subscription
+                </a>
                 <SoloDeliveries
                   riderId={rider.id}
                   riderName={rider.full_name}
