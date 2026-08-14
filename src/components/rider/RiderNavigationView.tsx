@@ -253,7 +253,11 @@ export default function RiderNavigationView({ riderId }: { riderId: string }) {
   if (loading) return null;
   if (!delivery) return null;
 
-  const etaMin = route?.durationMin || null;
+  // route.durationMin is 0 (falsy) for the straight-line fallback used when
+  // the routing service is unreachable — treat that as "no ETA", not "still
+  // calculating", so the UI doesn't get stuck saying "Calculating..." forever.
+  const etaMin = route && !route.isFallback ? route.durationMin : null;
+  const routeIsFallback = !!route?.isFallback;
 
   return (
     <div className="bg-card rounded-lg ring-1 ring-border overflow-hidden">
@@ -409,7 +413,7 @@ export default function RiderNavigationView({ riderId }: { riderId: string }) {
                 <Compass className="w-4 h-4 text-primary" /> Navigate Your Way
               </p>
               <p className="text-[10px] text-muted-foreground">
-                {etaMin ? `${etaMin} min` : 'Calculating...'} {route?.distanceKm ? `· ${route.distanceKm} km` : ''} · to {delivery.to_postcode || 'destination'}
+                {etaMin ? `${etaMin} min` : routeIsFallback ? 'Route unavailable' : 'Calculating...'} {route?.distanceKm ? `· ${route.distanceKm} km` : ''} · to {delivery.to_postcode || 'destination'}
               </p>
             </div>
             <button onClick={() => setNavFullscreen(false)}
