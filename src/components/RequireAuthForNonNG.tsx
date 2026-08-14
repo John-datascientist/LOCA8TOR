@@ -38,28 +38,37 @@ export default function RequireAuthForNonNG({
   const [effectiveStatus, setEffectiveStatus] = useState<string | null>(null);
   const [isLinked, setIsLinked] = useState(false);
   const [resending, setResending] = useState(false);
+  // True once the role/subscription lookups below have actually resolved.
+  // requireRoles/requirePaid checks must wait for this — otherwise they run
+  // against still-null accountType/subStatus/effectiveStatus on first render
+  // and redirect away before the real values arrive, causing a redirect
+  // loop with pages (like /onboarding/billing) that await the same data.
+  const [roleChecked, setRoleChecked] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
     let cancelled = false;
-    const loadRole = (u?: any) => {
+    const loadRole = async (u?: any) => {
       const uid = u?.id;
-      if (!uid) { setAccountType(null); setSubStatus(null); setEffectiveStatus(null); setIsLinked(false); return; }
-      supabase.from('riders').select('account_type, subscription_status').eq('user_id', uid).maybeSingle()
-        .then(async ({ data }) => {
-          if (cancelled) return;
-          const profile = data || await ensureRiderProfileFromMetadata(u).catch(() => null);
-          if (cancelled) return;
-          setAccountType((profile?.account_type as string) ?? null);
-          setSubStatus((profile?.subscription_status as string) ?? null);
-        });
-      (supabase as any).rpc('get_effective_subscription_status', { p_user_id: uid })
-        .then(({ data }: any) => {
-          if (cancelled) return;
-          const row = Array.isArray(data) ? data[0] : data;
-          setEffectiveStatus((row?.effective_status as string) ?? null);
-          setIsLinked(!!row?.is_linked);
-        });
+      if (!uid) {
+        setAccountType(null); setSubStatus(null); setEffectiveStatus(null); setIsLinked(false);
+        setRoleChecked(true);
+        return;
+      }
+      setRoleChecked(false);
+      const [riderRes, effRes] = await Promise.all([
+        supabase.from('riders').select('account_type, subscription_status').eq('user_id', uid).maybeSingle(),
+        (supabase as any).rpc('get_effective_subscription_status', { p_user_id: uid }),
+      ]);
+      if (cancelled) return;
+      const profile = riderRes.data || await ensureRiderProfileFromMetadata(u).catch(() => null);
+      if (cancelled) return;
+      setAccountType((profile?.account_type as string) ?? null);
+      setSubStatus((profile?.subscription_status as string) ?? null);
+      const row = Array.isArray(effRes.data) ? effRes.data[0] : effRes.data;
+      setEffectiveStatus((row?.effective_status as string) ?? null);
+      setIsLinked(!!row?.is_linked);
+      setRoleChecked(true);
     };
     const applyUser = (u: any) => {
       setIsAuthed(!!u);
@@ -90,8 +99,18 @@ export default function RequireAuthForNonNG({
   // Super admins + preview env: bypass for testing
   if (isSuperAdmin || isPreview) return <>{children}</>;
 
-  // Signed in (and verified if required): allow, subject to role check
+  // Signed in (and verified if required): allow, subject to role check.
+  // If this route cares about role/paid status, wait for that data to
+  // actually load before deciding — otherwise we'd judge against still-null
+  // values on first render.
   if (isAuthed && (!requireVerified || emailVerified)) {
+    if ((requireRoles?.length || requirePaid) && !roleChecked) {
+      return (
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
     if (requireRoles && requireRoles.length > 0) {
       if (!accountType || !requireRoles.includes(accountType as any)) {
         return (
