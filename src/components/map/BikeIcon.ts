@@ -1,11 +1,14 @@
 import L from 'leaflet';
 
+// DB values stay 'bike'/'car'/'bus'/'truck' (unchanged, to avoid a data
+// migration) but map to real Nigerian delivery vehicle categories on
+// screen: 'car' displays as Motorcycle, 'bus' displays as Van.
 export type VehicleType = 'bike' | 'car' | 'bus' | 'truck';
 
 const VEHICLE_EMOJI: Record<VehicleType, string> = {
   bike: '🚴',
-  car: '🚗',
-  bus: '🚌',
+  car: '🏍️',
+  bus: '🚐',
   truck: '🚚',
 };
 
