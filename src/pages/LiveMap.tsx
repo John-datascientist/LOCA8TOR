@@ -1,12 +1,24 @@
 import { useState } from 'react';
 import SEO from '@/components/SEO';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Package, Search, Truck, MapPin, ArrowRight, Shield, Clock, Bike } from 'lucide-react';
+import PostcodeNavigationView from '@/components/rider/PostcodeNavigationView';
 
 export default function LiveMap() {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Riders arrive here via "Open in App Live Map" from a postcode search
+  // (SearchPage.tsx), carrying the destination as query params — show the
+  // turn-by-turn navigation view instead of the generic tracking-code page.
+  const navLat = Number(searchParams.get('lat'));
+  const navLng = Number(searchParams.get('lng'));
+  const navPostcode = searchParams.get('pc');
+  if (Number.isFinite(navLat) && Number.isFinite(navLng) && navLat !== 0 && navLng !== 0) {
+    return <PostcodeNavigationView lat={navLat} lng={navLng} postcode={navPostcode || ''} />;
+  }
 
   const handleTrack = (e: React.FormEvent) => {
     e.preventDefault();

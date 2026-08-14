@@ -548,8 +548,8 @@ export default function Signup() {
                       onChange={e => setVehicleType(e.target.value as 'car' | 'bus' | 'truck')}
                       className="w-full px-3 py-2.5 bg-secondary border border-border rounded-lg text-sm text-foreground outline-none focus:border-primary transition-colors"
                     >
-                      <option value="car">🚗 Car</option>
-                      <option value="bus">🚌 Bus</option>
+                      <option value="car">🏍️ Motorcycle</option>
+                      <option value="bus">🚐 Van</option>
                       <option value="truck">🚚 Truck</option>
                     </select>
                   )}
