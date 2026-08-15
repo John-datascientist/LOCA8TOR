@@ -150,15 +150,14 @@ export default function LiveDeliveryMap({
   return (
     <MapContainer center={center} zoom={15} scrollWheelZoom={true} zoomControl={false}
       style={{ height: '100%', width: '100%' }} className="z-0">
-      {/* CARTO's tile CDN, not OSM's raw public tile server — OSM's own usage
-          policy says that server isn't meant for production app traffic and
-          can throttle/drop requests under load. LiveFleetMap.tsx (business
-          rider tracking) already uses CARTO for exactly this reason; this
-          map used the raw OSM server, which likely explains at least some
-          of the intermittent blank/grey tile reports on this screen. */}
+      {/* Reverted to OSM tiles — switching to CARTO here (matching
+          LiveFleetMap.tsx) caused a regression: the map stopped showing even
+          on the initial picker screen, which had been working fine on OSM.
+          CARTO may still be worth revisiting later, but not blindly copied
+          over without confirming it actually works on this screen first. */}
       <TileLayer
-        attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       
       {/* Route polyline */}
