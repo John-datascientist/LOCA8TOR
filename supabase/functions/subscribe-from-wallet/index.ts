@@ -29,7 +29,11 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'invalid_input' }), { status: 400, headers: corsHeaders })
     }
 
-    const { data, error } = await admin.rpc('debit_wallet_for_subscription', {
+    const { data: plan } = await admin.from('subscription_plans')
+      .select('category').eq('code', plan_code).maybeSingle()
+    const rpcName = (plan as any)?.category === 'api' ? 'debit_wallet_for_api_subscription' : 'debit_wallet_for_subscription'
+
+    const { data, error } = await admin.rpc(rpcName, {
       _user_id: user.id, _plan_code: plan_code, _cycle: billing_cycle,
     })
     if (error) {
