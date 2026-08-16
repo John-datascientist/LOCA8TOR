@@ -14,6 +14,7 @@ export default function SubscribeModal({
   plan,
   defaults,
   noTrial = false,
+  walletOnly = false,
   onClose,
   onSuccess,
 }: {
@@ -21,10 +22,12 @@ export default function SubscribeModal({
   defaults?: { full_name?: string; email?: string; phone?: string };
   /** Charge immediately — no 7-day free trial (solo rider / driver plans). */
   noTrial?: boolean;
+  /** Hide the card/Stripe option — this plan category is wallet-only for now. */
+  walletOnly?: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }) {
-  const [method, setMethod] = useState<'card' | 'wallet'>('card');
+  const [method, setMethod] = useState<'card' | 'wallet'>(walletOnly ? 'wallet' : 'card');
   const [busy, setBusy] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [activated, setActivated] = useState(false);
@@ -131,7 +134,7 @@ export default function SubscribeModal({
         </header>
 
         <div className="p-4 space-y-3">
-          {!activated && !sessionId && (
+          {!activated && !sessionId && !walletOnly && (
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setMethod('card')}
@@ -151,6 +154,12 @@ export default function SubscribeModal({
                 <Wallet className="w-4 h-4" />
                 Wallet (₦)
               </button>
+            </div>
+          )}
+          {!activated && !sessionId && walletOnly && (
+            <div className="flex items-center gap-2 text-[11px] bg-secondary rounded-md p-2.5 text-muted-foreground">
+              <Wallet className="w-3.5 h-3.5 shrink-0" />
+              API plans are paid from your Loca8tor wallet for now — card payment is coming soon.
             </div>
           )}
 
