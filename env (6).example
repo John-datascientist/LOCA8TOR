@@ -1,9 +1,0 @@
-NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-or-publishable-key
-
-# Where Nigeria-based "Become a rider" applicants are sent to sign up with Loca8tor.
-NEXT_PUBLIC_LOCA8TOR_RIDER_URL=https://loca8tor.example.com/riders/apply
-
-# Secret: server-side only, never expose to the browser (no NEXT_PUBLIC_ prefix).
-LOCA8TOR_API_KEY=your-loca8tor-api-key
-LOCA8TOR_API_BASE_URL=https://api.loca8tor.example.com
