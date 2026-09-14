@@ -4,6 +4,7 @@ import {
   writeOfflinePostcode,
   findNearestOffline,
   isOnline,
+  roundToCacheGrid,
 } from './offlinePostcodeCache';
 
 // ══ NIGERIAN STATES (matching uploaded site) ══
@@ -319,12 +320,11 @@ async function writeCoordinateCache(
   countryCode: string, lat: number, lng: number, r: PostcodeResult
 ): Promise<void> {
   try {
-    // ~110 m grid (matches the offline cache and Nigeria's BLOCK) so typical
-    // GPS jitter (10-50 m) still hits the same cache entry instead of
-    // triggering a fresh Nominatim lookup that can return a neighbouring
-    // postcode for what is really the same spot.
-    const latKey = Math.round(lat * 1000) / 1000;
-    const lngKey = Math.round(lng * 1000) / 1000;
+    // Same grid as every other cache — see roundToCacheGrid. Coarse (~110 m)
+    // for Nigeria to match our own generated grid, fine (~11 m) everywhere
+    // else so real postcode units don't get merged into one another.
+    const latKey = roundToCacheGrid(countryCode, lat);
+    const lngKey = roundToCacheGrid(countryCode, lng);
     await supabase.rpc('upsert_coordinate_postcode_cache', {
       _country_code: countryCode,
       _lat: latKey,
@@ -350,12 +350,12 @@ async function writeCoordinateCache(
  */
 export async function generatePostcodeWithAddress(lat: number, lng: number): Promise<PostcodeResult> {
   const country = detectCountry(lat, lng);
-  // For Nigeria use the stable grid; for other countries use rounded coords
-  // as cache key. 3 decimal places (~110 m) matches the offline cache and
-  // Nigeria's BLOCK, so GPS jitter for the same spot doesn't miss the cache.
+  // For Nigeria use the stable grid; for other countries round to the shared
+  // cache grid (see roundToCacheGrid) so the session cache buckets exactly the
+  // same way the offline and DB caches do.
   const cacheKey = country === 'NG'
     ? `NG|${stableGrid(lat, lng).gridLat}|${stableGrid(lat, lng).gridLng}`
-    : `${country}|${lat.toFixed(3)}|${lng.toFixed(3)}`;
+    : `${country}|${roundToCacheGrid(country, lat)}|${roundToCacheGrid(country, lng)}`;
 
   // 1. Session cache
   if (postcodeCache.has(cacheKey)) {
@@ -371,7 +371,11 @@ export async function generatePostcodeWithAddress(lat: number, lng: number): Pro
     return { ...normalized, lat, lng };
   }
   if (!isOnline()) {
-    const nearest = await findNearestOffline(country, lat, lng, 60);
+    // Borrowing a neighbour's postcode is only defensible where we mint our
+    // own ~100 m-grid codes (Nigeria). Real postcode units elsewhere are much
+    // smaller, so 60 m away is routinely a different postcode — keep the
+    // offline radius tight enough to mean "same spot, jittery GPS".
+    const nearest = await findNearestOffline(country, lat, lng, country === 'NG' ? 60 : 15);
     if (nearest) {
       const normalized = { ...nearest, postcode: normalizeNigerianPostcodeDistrict(nearest.postcode) };
       postcodeCache.set(cacheKey, normalized);
@@ -394,13 +398,14 @@ export async function generatePostcodeWithAddress(lat: number, lng: number): Pro
     }
   }
 
-  // 1b. DB coordinate cache (skip Nominatim for repeat lookups). Same ~110 m
-  // rounding as writeCoordinateCache — must match or writes and reads would
-  // key differently and never hit.
+  // 1b. DB coordinate cache (skip Nominatim for repeat lookups). Must use the
+  // same rounding as writeCoordinateCache — the table matches on exact
+  // equality (UNIQUE (country_code, lat, lng)), so a mismatch here would mean
+  // reads never hit what writes stored.
   if (country !== 'NG') {
     try {
-      const latKey = Math.round(lat * 1000) / 1000;
-      const lngKey = Math.round(lng * 1000) / 1000;
+      const latKey = roundToCacheGrid(country, lat);
+      const lngKey = roundToCacheGrid(country, lng);
       const { data: cached } = await supabase.rpc('get_coordinate_postcode_cache', {
         _country_code: country,
         _lat: latKey,
@@ -546,9 +551,12 @@ export async function generatePostcodeWithAddress(lat: number, lng: number): Pro
         countryCode: geo.countryCode || country,
         isGenerated: false,
       };
-      postcodeCache.set(cacheKey, result);
-      void writeCoordinateCache(country, lat, lng, result);
-      void writeOfflinePostcode(country, lat, lng, result);
+      // Deliberately NOT persisted. zoom=16 matches a broader feature than the
+      // building-level zoom=18 above, so this postcode belongs to an enclosing
+      // area rather than to this exact spot. It is worth returning to the
+      // caller who asked, but writing it to the shared coordinate cache would
+      // make one approximate guess the canonical answer served to every other
+      // user near this point. Only high-confidence zoom=18 results get stored.
       return result;
     }
   } catch {}
