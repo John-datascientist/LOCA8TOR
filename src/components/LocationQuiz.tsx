@@ -719,34 +719,6 @@ export default function LocationQuiz({ onSaveToHistory }: LocationQuizProps) {
     return <WithdrawalForm balance={totalBalance} onBack={() => setMode('select')} onSubmit={handleWithdraw} />;
   }
 
-  // ─── Quiz Paused Notice ───
-  // The quiz is currently paused while we resolve a generation issue. Existing
-  // balances can still be withdrawn via the button below.
-  return (
-    <div className="min-h-[60vh] flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md bg-card rounded-2xl ring-1 ring-border p-6 text-center space-y-4">
-        <div className="w-14 h-14 rounded-full bg-amber-500/15 ring-1 ring-amber-500/30 flex items-center justify-center mx-auto">
-          <Brain className="w-7 h-7 text-amber-500" />
-        </div>
-        <div>
-          <h2 className="font-heading text-xl font-bold text-foreground">Quiz Temporarily Paused</h2>
-          <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-            We are currently experiencing difficulty in generating quiz, please try again later.
-          </p>
-        </div>
-        {totalBalance > 0 && (
-          <button
-            onClick={() => setMode('withdraw')}
-            className="w-full py-2.5 bg-primary text-primary-foreground font-heading font-bold rounded-lg hover:brightness-110 transition flex items-center justify-center gap-2"
-          >
-            <Wallet className="w-4 h-4" /> Withdraw Balance (₦{totalBalance})
-          </button>
-        )}
-        <p className="text-[11px] text-muted-foreground">Thanks for your patience.</p>
-      </div>
-    </div>
-  );
-
   // ─── Ad Screen (FULLSCREEN) ───
   if (mode === 'ad') {
     return (
