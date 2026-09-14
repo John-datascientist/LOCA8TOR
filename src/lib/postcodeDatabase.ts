@@ -106,6 +106,31 @@ export async function searchPostcodes(query: string): Promise<PostcodeResult[]> 
     lng: row.lng,
   });
 
+  // Postcodes issued through the public developer API (supabase/functions/api-v1)
+  // are persisted to `properties`, not `postcodes` — `postcodes` is only ever
+  // written by the website's own generate flow (addPostcodeToDB), a call the
+  // API path never makes. Without this, a postcode a third-party app generated
+  // through the API is saved correctly but can never be found from this search.
+  // `properties` names its columns differently (state_name/lga_name) and has no
+  // `country` column (it is Nigeria-only), hence the separate mapper.
+  const mapPropertyRowToResult = (row: {
+    postcode: string;
+    state_name: string | null;
+    address: string | null;
+    lga_name: string | null;
+    lat: number;
+    lng: number;
+  }): PostcodeResult => ({
+    postcode: normalizeNigerianPostcodeDistrict(row.postcode),
+    state: row.state_name || '',
+    areaCode: normalizeNigerianPostcodeDistrict(row.postcode).substring(0, 2),
+    address: row.address || undefined,
+    country: 'Nigeria',
+    lga: row.lga_name || undefined,
+    lat: row.lat,
+    lng: row.lng,
+  });
+
   const postcodeLabelMatch = q.match(/postcode:\s*([^\n\r]+)/i);
   const extractedPostcode = normalizeNigerianPostcodeDistrict(
     (postcodeLabelMatch?.[1]?.trim() || q.match(/\b[A-Z]{1,3}\d[A-Z0-9]?\s\d[A-Z]{2}\b/i)?.[0] || '').toUpperCase()
@@ -125,6 +150,16 @@ export async function searchPostcodes(query: string): Promise<PostcodeResult[]> 
 
     if (exactPostcodeRows && exactPostcodeRows.length > 0) {
       return exactPostcodeRows.map(mapRowToResult);
+    }
+
+    const { data: exactPropertyRows } = await supabase
+      .from('properties')
+      .select('postcode, address, state_name, lga_name, lat, lng')
+      .ilike('postcode', extractedPostcode)
+      .limit(1);
+
+    if (exactPropertyRows && exactPropertyRows.length > 0) {
+      return exactPropertyRows.map(mapPropertyRowToResult);
     }
   }
 
@@ -181,6 +216,23 @@ export async function searchPostcodes(query: string): Promise<PostcodeResult[]> 
   const { data, error } = await dbQuery;
   const dbResults: PostcodeResult[] = error || !data ? [] : data.map(mapRowToResult);
 
+  // Same free-text search over API-issued postcodes (see mapPropertyRowToResult).
+  let propertyQuery = supabase
+    .from('properties')
+    .select('postcode, address, state_name, lga_name, lat, lng, created_at')
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (q) {
+    propertyQuery = propertyQuery.or(
+      `postcode.ilike.%${q}%,address.ilike.%${q}%,state_name.ilike.%${q}%,lga_name.ilike.%${q}%`
+    );
+  }
+
+  const { data: propertyData, error: propertyError } = await propertyQuery;
+  const propertyResults: PostcodeResult[] =
+    propertyError || !propertyData ? [] : propertyData.map(mapPropertyRowToResult);
+
   // Admin-saved landmarks — search by company/place name, address or postcode.
   let landmarkResults: PostcodeResult[] = [];
   if (q && !coordMatch) {
@@ -217,6 +269,9 @@ export async function searchPostcodes(query: string): Promise<PostcodeResult[]> 
   }
   for (const r of dbResults) {
     if (!seen.has(r.postcode)) { seen.add(r.postcode); merged.push(r); }
+  }
+  for (const p of propertyResults) {
+    if (!seen.has(p.postcode)) { seen.add(p.postcode); merged.push(p); }
   }
   for (const ext of externalResults) {
     if (!seen.has(ext.postcode)) {
