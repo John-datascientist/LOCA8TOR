@@ -9,10 +9,34 @@ const MAX_ENTRIES = 500;
 
 export type CachedPostcode = PostcodeResult & { cachedAt: number };
 
+/**
+ * Rounds a coordinate to the cache grid for a country. Every cache — the
+ * in-memory session map, this IndexedDB store, and the shared
+ * coordinate_postcode_cache table — must round identically, or writes and
+ * reads key differently and never hit.
+ *
+ * Nigeria uses ~110 m (3dp) to match Loca8tor's own generated grid: we mint
+ * one postcode per ~100 m BLOCK there, so a coarser bucket is exactly right
+ * and absorbs GPS jitter for free.
+ *
+ * Everywhere else we return REAL postcodes, and real postcode units are far
+ * smaller than 110 m — a UK unit is often one side of one street. At 3dp a
+ * whole 110 m x 70 m cell collapsed to whichever postcode happened to be
+ * looked up first, and because the DB cache is shared across all users, that
+ * first answer was then served to everyone else in the cell. That is why UK
+ * lookups kept returning a neighbouring area's postcode. 4dp is ~11 m of
+ * latitude (~7 m of longitude at UK latitudes) — tight enough not to merge
+ * adjacent postcode units, still coarse enough that a stationary device's
+ * jitter reuses the entry.
+ */
+export function roundToCacheGrid(country: string, value: number): number {
+  const factor = country === 'NG' ? 1000 : 10000;
+  return Math.round(value * factor) / factor;
+}
+
 function buildKey(country: string, lat: number, lng: number): string {
-  // Round to ~110m grid so nearby reads hit the cache offline.
-  const la = Math.round(lat * 1000) / 1000;
-  const ln = Math.round(lng * 1000) / 1000;
+  const la = roundToCacheGrid(country, lat);
+  const ln = roundToCacheGrid(country, lng);
   return `${PREFIX}${country}|${la}|${ln}`;
 }
 
